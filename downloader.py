@@ -133,15 +133,15 @@ def extract_video_info(url):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
-        'socket_timeout': 5,
-        'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
+        'socket_timeout': 8,
+        'extractor_args': {'youtube': {'player_client': ['android', 'web_embedded', 'web']}}
     }
     opts_fallback = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
-        'socket_timeout': 5,
+        'socket_timeout': 8,
     }
 
     info = None
@@ -249,13 +249,15 @@ def get_stream_url(url, format_id='best'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
-        'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
+        'socket_timeout': 8,
+        'extractor_args': {'youtube': {'player_client': ['android', 'web_embedded', 'web']}}
     }
     opts_fallback = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
+        'socket_timeout': 8,
     }
 
     info = None
@@ -310,13 +312,15 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
-        'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
+        'socket_timeout': 8,
+        'extractor_args': {'youtube': {'player_client': ['android', 'web_embedded', 'web']}}
     }
     opts_fallback = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
+        'socket_timeout': 8,
     }
 
     info = None
