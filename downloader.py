@@ -50,6 +50,7 @@ def search_videos(query, limit=20, page=1):
         'no_warnings': True,
         'extract_flat': 'in_playlist',
         'nocheckcertificate': True,
+        'cachedir': False,
         'extractor_args': {
             'youtube': {
                 'player_client': ['android', 'web']
@@ -133,6 +134,7 @@ def extract_video_info(url):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
+        'cachedir': False,
         'socket_timeout': 8,
         'extractor_args': {'youtube': {'player_client': ['android', 'web_embedded', 'web']}}
     }
@@ -141,6 +143,7 @@ def extract_video_info(url):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
+        'cachedir': False,
         'socket_timeout': 8,
     }
 
