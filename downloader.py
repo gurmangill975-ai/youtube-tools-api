@@ -136,7 +136,7 @@ def extract_video_info(url):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'mweb', 'tv_html5']}}
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'tv_embedded']}}
     }
     opts_fallback = {
         'quiet': True,
@@ -145,7 +145,56 @@ def extract_video_info(url):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android']}}
+    }
+
+
+def get_stream_url(url, format_id='best'):
+    """
+    Get direct stream URL and HTTP headers for a video format.
+    """
+    opts_primary = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'noplaylist': True,
+        'cachedir': False,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'tv_embedded']}}
+    }
+    opts_fallback = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'noplaylist': True,
+        'cachedir': False,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android']}}
+    }
+
+
+def get_direct_download_link(url, quality='best', format_type='video'):
+    """
+    Get direct stream link and filename for Vercel instant downloads.
+    Bypasses server file creation & ffmpeg timeouts completely (<500ms response).
+    """
+    opts_primary = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'noplaylist': True,
+        'cachedir': False,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'tv_embedded']}}
+    }
+    opts_fallback = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'noplaylist': True,
+        'cachedir': False,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android']}}
     }
 
     info = None
