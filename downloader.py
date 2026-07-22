@@ -136,6 +136,7 @@ def extract_video_info(url):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
+        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
         'extractor_args': {'youtube': {'player_client': ['android']}}
     }
     opts_fallback = {
@@ -145,6 +146,7 @@ def extract_video_info(url):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
+        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
         'extractor_args': {'youtube': {'player_client': ['android']}}
     }
 
@@ -160,6 +162,7 @@ def get_stream_url(url, format_id='best'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
+        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
         'extractor_args': {'youtube': {'player_client': ['android']}}
     }
     opts_fallback = {
@@ -169,6 +172,7 @@ def get_stream_url(url, format_id='best'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
+        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
         'extractor_args': {'youtube': {'player_client': ['android']}}
     }
 
