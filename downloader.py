@@ -133,6 +133,7 @@ def extract_video_info(url):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
+        'socket_timeout': 5,
         'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
     }
     opts_fallback = {
@@ -140,6 +141,7 @@ def extract_video_info(url):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
+        'socket_timeout': 5,
     }
 
     info = None
