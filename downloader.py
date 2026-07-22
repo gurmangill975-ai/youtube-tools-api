@@ -133,12 +133,14 @@ def extract_video_info(url):
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'ignoreerrors': True,
         'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
     }
     opts_fallback = {
         'quiet': True,
         'no_warnings': True,
-        'nocheckcertificate': True
+        'nocheckcertificate': True,
+        'ignoreerrors': True,
     }
 
     info = None
@@ -157,34 +159,36 @@ def extract_video_info(url):
     if not info:
         raise Exception("Could not retrieve video information.")
 
-    formats_list = info.get('formats', [])
+    formats_list = info.get('formats', []) or []
     combined_formats = []
     video_only_formats = []
     audio_only_formats = []
 
     for f in formats_list:
-        vcodec = f.get('vcodec', 'none')
-        acodec = f.get('acodec', 'none')
+        if not isinstance(f, dict):
+            continue
+        vcodec = f.get('vcodec') or 'none'
+        acodec = f.get('acodec') or 'none'
         filesize = f.get('filesize') or f.get('filesize_estimate') or 0
-        ext = f.get('ext', '')
-        format_id = f.get('format_id', '')
+        ext = f.get('ext') or ''
+        format_id = f.get('format_id') or ''
         resolution = f.get('resolution') or f"{f.get('width', '?')}x{f.get('height', '?')}"
         fps = f.get('fps')
         tbr = f.get('tbr')  # total average bitrate in Kbit/s
         asr = f.get('asr')  # audio sampling rate
 
         fmt_item = {
-            'format_id': format_id,
-            'extension': ext,
-            'resolution': resolution,
+            'format_id': str(format_id),
+            'extension': str(ext),
+            'resolution': str(resolution),
             'width': f.get('width'),
             'height': f.get('height'),
             'fps': fps,
             'filesize': filesize,
             'filesize_human': format_bytes(filesize),
             'bitrate_kbit': tbr,
-            'vcodec': vcodec,
-            'acodec': acodec,
+            'vcodec': str(vcodec),
+            'acodec': str(acodec),
             'format_note': f.get('format_note', ''),
         }
 
@@ -201,15 +205,23 @@ def extract_video_info(url):
     video_only_formats.sort(key=lambda x: x.get('height') or 0, reverse=True)
     audio_only_formats.sort(key=lambda x: x.get('bitrate_kbit') or 0, reverse=True)
 
+    duration_sec = info.get('duration')
+    duration_human = 'Live/Unknown'
+    if duration_sec and isinstance(duration_sec, (int, float)):
+        try:
+            duration_human = time.strftime('%H:%M:%S', time.gmtime(duration_sec))
+        except Exception:
+            duration_human = str(duration_sec)
+
     return {
-        'id': info.get('id'),
-        'title': info.get('title'),
-        'description': info.get('description'),
-        'duration': info.get('duration'),
-        'duration_human': time.strftime('%H:%M:%S', time.gmtime(info.get('duration', 0))) if info.get('duration') else 'Live',
-        'uploader': info.get('uploader') or info.get('channel'),
-        'view_count': info.get('view_count'),
-        'thumbnail': info.get('thumbnail'),
+        'id': info.get('id', ''),
+        'title': info.get('title', 'Untitled Video'),
+        'description': info.get('description', ''),
+        'duration': duration_sec or 0,
+        'duration_human': duration_human,
+        'uploader': info.get('uploader') or info.get('channel') or 'YouTube',
+        'view_count': info.get('view_count') or 0,
+        'thumbnail': info.get('thumbnail') or f"https://i.ytimg.com/vi/{info.get('id', '')}/hqdefault.jpg",
         'url': url,
         'formats': {
             'combined': combined_formats,
