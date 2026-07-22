@@ -3,13 +3,18 @@ import time
 import logging
 import threading
 import uuid
+import tempfile
 import yt_dlp
 
 logger = logging.getLogger("youtube_downloader")
 logging.basicConfig(level=logging.INFO)
 
-DOWNLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+# Use system tempdir (/tmp on Vercel/Linux) so module import never raises PermissionError
+DOWNLOAD_DIR = os.path.join(tempfile.gettempdir(), "yt_tools_downloads")
+try:
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+except Exception as err:
+    logger.warning(f"Could not create temp download dir: {err}")
 
 DOWNLOAD_TASKS = {}
 TASKS_LOCK = threading.Lock()
