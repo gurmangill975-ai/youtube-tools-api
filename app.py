@@ -84,7 +84,8 @@ def get_info():
         info = downloader.extract_video_info(video_url)
         return jsonify({'success': True, 'data': info})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        app.logger.error(f"Error in /api/info: {e}\n{traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
 @app.route('/api/stream-url', methods=['GET'])
