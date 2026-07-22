@@ -82,7 +82,8 @@ def get_info():
 
     try:
         info = downloader.extract_video_info(video_url)
-        return jsonify({'success': True, 'data': info})
+        safe_data = json.loads(json.dumps(info, default=str))
+        return jsonify({'success': True, 'data': safe_data})
     except Exception as e:
         app.logger.error(f"Error in /api/info: {e}\n{traceback.format_exc()}")
         return jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
