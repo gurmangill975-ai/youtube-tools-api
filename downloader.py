@@ -136,7 +136,7 @@ def extract_video_info(url):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'mweb', 'tv_html5']}}
     }
     opts_fallback = {
         'quiet': True,
@@ -145,7 +145,7 @@ def extract_video_info(url):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}}
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
     }
 
     info = None
@@ -321,7 +321,7 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'mweb', 'tv_html5']}}
     }
     opts_fallback = {
         'quiet': True,
@@ -330,7 +330,7 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}}
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
     }
 
     info = None
