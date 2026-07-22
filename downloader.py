@@ -132,7 +132,6 @@ def extract_video_info(url):
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'ignoreerrors': True,
         'noplaylist': True,
         'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
     }
@@ -140,7 +139,6 @@ def extract_video_info(url):
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'ignoreerrors': True,
         'noplaylist': True,
     }
 
