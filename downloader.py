@@ -51,6 +51,11 @@ def search_videos(query, limit=20, page=1):
         'extract_flat': 'in_playlist',
         'nocheckcertificate': True,
         'ignoreerrors': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb', 'web']
+            }
+        }
     }
 
     search_target = query.strip()
@@ -121,13 +126,18 @@ def search_videos(query, limit=20, page=1):
 
 def extract_video_info(url):
     """
-    Extract metadata and format breakdown for a YouTube video.
+    Extract metadata and format breakdown for a YouTube video (including Kids & Restricted videos).
     Returns a structured dictionary of information.
     """
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb', 'web']
+            }
+        }
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -189,7 +199,7 @@ def extract_video_info(url):
         'title': info.get('title'),
         'description': info.get('description'),
         'duration': info.get('duration'),
-        'duration_human': time.strftime('%H:%M:%S', time.gmtime(info.get('duration', 0))),
+        'duration_human': time.strftime('%H:%M:%S', time.gmtime(info.get('duration', 0))) if info.get('duration') else 'Live',
         'uploader': info.get('uploader') or info.get('channel'),
         'view_count': info.get('view_count'),
         'thumbnail': info.get('thumbnail'),
@@ -210,6 +220,11 @@ def get_stream_url(url, format_id='best'):
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb', 'web']
+            }
+        }
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -235,6 +250,7 @@ def get_stream_url(url, format_id='best'):
             raise Exception(f"Format ID '{format_id}' not found for video.")
 
         return {
+            'title': info.get('title', 'video'),
             'stream_url': target.get('url'),
             'headers': target.get('http_headers', {}),
             'ext': target.get('ext'),
@@ -252,6 +268,11 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb', 'web']
+            }
+        }
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -399,6 +420,11 @@ def _download_worker(task_id, url, format_id, format_type):
         'retries': 10,
         'fragment_retries': 10,
         'concurrent_fragment_downloads': 4,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb', 'web']
+            }
+        }
     }
 
     if format_type == 'audio' or format_id == 'mp3':

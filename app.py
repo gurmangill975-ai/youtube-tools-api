@@ -183,6 +183,66 @@ def direct_download_link():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/download/proxy', methods=['GET'])
+def download_proxy():
+    """
+    Direct Stream Download Proxy: Streams YouTube video/audio directly to client
+    with Content-Disposition attachment header so the browser/app downloads it as a file.
+    Query params: ?url=<youtube_url>&format_id=<format_id>&filename=<filename>
+    """
+    video_url = request.args.get('url')
+    format_id = request.args.get('format_id', 'best')
+    custom_name = request.args.get('filename')
+
+    if not video_url:
+        return jsonify({'error': 'Parameter "url" is required'}), 400
+
+    try:
+        stream_info = downloader.get_stream_url(video_url, format_id)
+        target_url = stream_info['stream_url']
+        target_headers = stream_info.get('headers', {})
+        ext = stream_info.get('ext', 'mp4')
+        title = stream_info.get('title', 'video')
+    except Exception as e:
+        return jsonify({'error': f'Failed to resolve stream URL: {str(e)}'}), 500
+
+    if not custom_name:
+        safe_title = "".join([c for c in title if c.isalnum() or c in (' ', '-', '_')]).strip()
+        custom_name = f"{safe_title}.{ext}"
+
+    req_headers = dict(target_headers)
+    client_range = request.headers.get('Range')
+    if client_range:
+        req_headers['Range'] = client_range
+
+    try:
+        r = requests.get(target_url, headers=req_headers, stream=True, timeout=15)
+    except Exception as e:
+        return jsonify({'error': f'Failed to proxy download: {str(e)}'}), 502
+
+    response_headers = {
+        'Content-Disposition': f'attachment; filename="{custom_name}"',
+        'Content-Type': r.headers.get('Content-Type', 'application/octet-stream')
+    }
+    for header_name in ['Content-Range', 'Accept-Ranges', 'Content-Length']:
+        if header_name in r.headers:
+            response_headers[header_name] = r.headers[header_name]
+
+    def generate_chunks():
+        try:
+            for chunk in r.iter_content(chunk_size=64 * 1024):
+                if chunk:
+                    yield chunk
+        except Exception as e:
+            app.logger.error(f"Error during download proxy chunking: {e}")
+
+    return Response(
+        generate_chunks(),
+        status=r.status_code,
+        headers=response_headers
+    )
+
+
 @app.route('/api/download/start', methods=['POST'])
 def start_download():
     """
