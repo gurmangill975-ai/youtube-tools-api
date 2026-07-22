@@ -1,38 +1,28 @@
 import os
 import time
-import uuid
-import threading
 import logging
+import threading
+import uuid
 import yt_dlp
 
-# Set up logging
+logger = logging.getLogger("youtube_downloader")
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("yt_downloader")
 
-# Directory where downloads will be cached temporarily
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
-    DOWNLOAD_DIR = "/tmp/downloads"
-else:
-    DOWNLOAD_DIR = os.path.join(BASE_DIR, "downloads")
-
+DOWNLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# Global dictionary to track download tasks
-# Key: task_id (str), Value: task dict
 DOWNLOAD_TASKS = {}
 TASKS_LOCK = threading.Lock()
 
 
-def format_bytes(bytes_num):
-    """Format bytes into human readable format."""
-    if not bytes_num or bytes_num <= 0:
-        return "0 B"
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if bytes_num < 1024.0:
-            return f"{bytes_num:.2f} {unit}"
-        bytes_num /= 1024.0
-    return f"{bytes_num:.2f} PB"
+def format_bytes(bytes_val):
+    if not bytes_val or not isinstance(bytes_val, (int, float)):
+        return "Unknown"
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if bytes_val < 1024.0:
+            return f"{bytes_val:.2f} {unit}"
+        bytes_val /= 1024.0
+    return f"{bytes_val:.2f} TB"
 
 
 def search_videos(query, limit=20, page=1):
@@ -40,7 +30,6 @@ def search_videos(query, limit=20, page=1):
     Search YouTube videos by title, keywords, playlist, or channel.
     Supports pagination (limit up to 100, page 1..N) with robust fallback handling.
     """
-    # Sanitize inputs
     limit = max(1, min(int(limit), 100))
     page = max(1, int(page))
     fetch_count = limit * page
@@ -51,15 +40,16 @@ def search_videos(query, limit=20, page=1):
         'extract_flat': 'in_playlist',
         'nocheckcertificate': True,
         'cachedir': False,
+        'socket_timeout': 10,
+        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
         'extractor_args': {
             'youtube': {
-                'player_client': ['tv_embedded', 'android', 'ios']
+                'player_client': ['android']
             }
         }
     }
 
     search_target = query.strip()
-    # If the user passed a direct video/playlist URL, use it directly, otherwise use ytsearch
     if not (search_target.startswith('http://') or search_target.startswith('https://')):
         search_target = f"ytsearch{fetch_count}:{search_target}"
 
@@ -77,7 +67,6 @@ def search_videos(query, limit=20, page=1):
         elif info.get('id'):
             raw_entries = [info]
 
-    # Slice for target page
     start_idx = (page - 1) * limit
     page_entries = raw_entries[start_idx : start_idx + limit]
 
@@ -139,126 +128,18 @@ def extract_video_info(url):
         'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
         'extractor_args': {'youtube': {'player_client': ['android']}}
     }
-    opts_fallback = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'noplaylist': True,
-        'cachedir': False,
-        'socket_timeout': 10,
-        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
-        'extractor_args': {'youtube': {'player_client': ['android']}}
-    }
-
-
-def get_stream_url(url, format_id='best'):
-    """
-    Get direct stream URL and HTTP headers for a video format.
-    """
-    opts_primary = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'noplaylist': True,
-        'cachedir': False,
-        'socket_timeout': 10,
-        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
-        'extractor_args': {'youtube': {'player_client': ['android']}}
-    }
-    opts_fallback = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'noplaylist': True,
-        'cachedir': False,
-        'socket_timeout': 10,
-        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
-        'extractor_args': {'youtube': {'player_client': ['android']}}
-    }
 
     info = None
     try:
         with yt_dlp.YoutubeDL(opts_primary) as ydl:
             info = ydl.extract_info(url, download=False)
-    except Exception:
-        with yt_dlp.YoutubeDL(opts_fallback) as ydl:
-            info = ydl.extract_info(url, download=False)
-
-    if info and 'entries' in info:
-        valid_entries = [e for e in info.get('entries', []) if e]
-        if valid_entries:
-            info = valid_entries[0]
-
-    formats = info.get('formats', []) if info else []
-    
-    target = None
-    if format_id == 'best':
-        for f in formats:
-            if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
-                target = f
-                break
-        if not target and formats:
-            target = formats[-1]
-    else:
-        for f in formats:
-            if str(f.get('format_id')) == str(format_id):
-                target = f
-                break
-
-    if not target:
-        raise Exception(f"Format ID '{format_id}' not found for video.")
-
-    return {
-        'title': info.get('title', 'video'),
-        'stream_url': target.get('url'),
-        'headers': target.get('http_headers', {}),
-        'ext': target.get('ext'),
-        'vcodec': target.get('vcodec'),
-        'acodec': target.get('acodec'),
-    }
-
-
-def get_direct_download_link(url, quality='best', format_type='video'):
-    """
-    Get direct stream link and filename for Vercel instant downloads.
-    Bypasses server file creation & ffmpeg timeouts completely (<500ms response).
-    """
-    opts_primary = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'noplaylist': True,
-        'cachedir': False,
-        'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android']}}
-    }
-    opts_fallback = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'noplaylist': True,
-        'cachedir': False,
-        'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android']}}
-    }
-
-    info = None
-    try:
-        with yt_dlp.YoutubeDL(opts_primary) as ydl:
-            info = ydl.extract_info(url, download=False)
-    except Exception as e1:
-        logger.warning(f"Primary info extraction failed for {url}: {e1}. Trying fallback...")
-        try:
-            with yt_dlp.YoutubeDL(opts_fallback) as ydl:
-                info = ydl.extract_info(url, download=False)
-        except Exception as e2:
-            logger.error(f"Fallback extraction also failed for {url}: {e2}")
-            raise Exception(f"Failed to fetch YouTube info: {str(e2)}")
+    except Exception as e:
+        logger.error(f"Extraction failed for {url}: {e}")
+        raise Exception(f"Failed to fetch YouTube info: {str(e)}")
 
     if not info:
         raise Exception("Could not retrieve video information.")
 
-    # Unpack if yt-dlp returned a playlist or mix entry
     if 'entries' in info:
         valid_entries = [e for e in info.get('entries', []) if e]
         if valid_entries:
@@ -281,8 +162,8 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         format_id = f.get('format_id') or ''
         resolution = f.get('resolution') or f"{f.get('width', '?')}x{f.get('height', '?')}"
         fps = f.get('fps')
-        tbr = f.get('tbr')  # total average bitrate in Kbit/s
-        asr = f.get('asr')  # audio sampling rate
+        tbr = f.get('tbr')
+        asr = f.get('asr')
 
         fmt_item = {
             'format_id': str(format_id),
@@ -307,7 +188,6 @@ def get_direct_download_link(url, quality='best', format_type='video'):
             fmt_item['sample_rate'] = asr
             audio_only_formats.append(fmt_item)
 
-    # Sort formats cleanly
     combined_formats.sort(key=lambda x: x.get('height') or 0, reverse=True)
     video_only_formats.sort(key=lambda x: x.get('height') or 0, reverse=True)
     audio_only_formats.sort(key=lambda x: x.get('bitrate_kbit') or 0, reverse=True)
@@ -349,25 +229,12 @@ def get_stream_url(url, format_id='best'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
-    }
-    opts_fallback = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'noplaylist': True,
-        'cachedir': False,
-        'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}}
+        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
+        'extractor_args': {'youtube': {'player_client': ['android']}}
     }
 
-    info = None
-    try:
-        with yt_dlp.YoutubeDL(opts_primary) as ydl:
-            info = ydl.extract_info(url, download=False)
-    except Exception:
-        with yt_dlp.YoutubeDL(opts_fallback) as ydl:
-            info = ydl.extract_info(url, download=False)
+    with yt_dlp.YoutubeDL(opts_primary) as ydl:
+        info = ydl.extract_info(url, download=False)
 
     if info and 'entries' in info:
         valid_entries = [e for e in info.get('entries', []) if e]
@@ -415,25 +282,12 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'tv_embedded']}}
-    }
-    opts_fallback = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'noplaylist': True,
-        'cachedir': False,
-        'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android']}}
+        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
+        'extractor_args': {'youtube': {'player_client': ['android']}}
     }
 
-    info = None
-    try:
-        with yt_dlp.YoutubeDL(opts_primary) as ydl:
-            info = ydl.extract_info(url, download=False)
-    except Exception:
-        with yt_dlp.YoutubeDL(opts_fallback) as ydl:
-            info = ydl.extract_info(url, download=False)
+    with yt_dlp.YoutubeDL(opts_primary) as ydl:
+        info = ydl.extract_info(url, download=False)
 
     if not info:
         raise Exception("Failed to retrieve video metadata.")
@@ -447,21 +301,18 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         raise Exception("Failed to retrieve video metadata.")
 
     title = info.get('title', 'video')
-    # Sanitize title for filename
     safe_title = "".join([c for c in title if c.isalnum() or c in (' ', '-', '_')]).rstrip()
     
     formats = info.get('formats', [])
     target_format = None
 
     if format_type in ['audio', 'mp3', 'm4a']:
-        # Find best audio format
         audio_formats = [f for f in formats if f.get('vcodec') == 'none' and f.get('acodec') != 'none']
         audio_formats.sort(key=lambda x: x.get('tbr') or 0, reverse=True)
         if audio_formats:
             target_format = audio_formats[0]
         ext = 'mp3' if format_type == 'mp3' else (target_format.get('ext') if target_format else 'm4a')
     else:
-        # Combined formats (video + audio) for fast single-url download
         combined = [f for f in formats if f.get('vcodec') != 'none' and f.get('acodec') != 'none']
         combined.sort(key=lambda x: x.get('height') or 0, reverse=True)
         
@@ -573,7 +424,6 @@ def _download_worker(task_id, url, format_id, format_type):
                 task['status'] = 'merging'
                 task['progress'] = 99.0
 
-    # Configure yt-dlp options based on format_type and format_id
     output_template = os.path.join(DOWNLOAD_DIR, f"{task_id}_%(title).100s.%(ext)s")
 
     ydl_opts = {
@@ -585,9 +435,10 @@ def _download_worker(task_id, url, format_id, format_type):
         'retries': 10,
         'fragment_retries': 10,
         'concurrent_fragment_downloads': 4,
+        'user_agent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11; US) gzip',
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'ios', 'mweb', 'web']
+                'player_client': ['android']
             }
         }
     }
@@ -602,11 +453,9 @@ def _download_worker(task_id, url, format_id, format_type):
     elif format_type == 'audio_m4a':
         ydl_opts['format'] = 'bestaudio[ext=m4a]/bestaudio/best'
     elif format_id and format_id != 'best':
-        # If user picked a specific video format (which might be video-only), combine with best audio
         ydl_opts['format'] = f"{format_id}+bestaudio/best/{format_id}"
         ydl_opts['merge_output_format'] = 'mp4'
     else:
-        # Best default format (video + audio merged to mp4)
         ydl_opts['format'] = 'bestvideo+bestaudio/best'
         ydl_opts['merge_output_format'] = 'mp4'
 
@@ -615,7 +464,6 @@ def _download_worker(task_id, url, format_id, format_type):
             info = ydl.extract_info(url, download=True)
             video_title = info.get('title', 'video')
 
-        # Locate the downloaded file for this task
         downloaded_file = None
         for filename in os.listdir(DOWNLOAD_DIR):
             if filename.startswith(task_id):
