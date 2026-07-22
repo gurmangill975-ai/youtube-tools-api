@@ -50,10 +50,9 @@ def search_videos(query, limit=20, page=1):
         'no_warnings': True,
         'extract_flat': 'in_playlist',
         'nocheckcertificate': True,
-        'ignoreerrors': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'ios', 'mweb', 'web']
+                'player_client': ['android', 'web']
             }
         }
     }
