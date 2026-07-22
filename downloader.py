@@ -53,7 +53,7 @@ def search_videos(query, limit=20, page=1):
         'cachedir': False,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web']
+                'player_client': ['tv_embedded', 'android', 'ios']
             }
         }
     }
@@ -135,8 +135,8 @@ def extract_video_info(url):
         'nocheckcertificate': True,
         'noplaylist': True,
         'cachedir': False,
-        'socket_timeout': 8,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web_embedded', 'web']}}
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
     }
     opts_fallback = {
         'quiet': True,
@@ -144,7 +144,8 @@ def extract_video_info(url):
         'nocheckcertificate': True,
         'noplaylist': True,
         'cachedir': False,
-        'socket_timeout': 8,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}}
     }
 
     info = None
@@ -252,15 +253,18 @@ def get_stream_url(url, format_id='best'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
-        'socket_timeout': 8,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web_embedded', 'web']}}
+        'cachedir': False,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
     }
     opts_fallback = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
-        'socket_timeout': 8,
+        'cachedir': False,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}}
     }
 
     info = None
@@ -315,15 +319,18 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
-        'socket_timeout': 8,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web_embedded', 'web']}}
+        'cachedir': False,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android', 'ios']}}
     }
     opts_fallback = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
         'noplaylist': True,
-        'socket_timeout': 8,
+        'cachedir': False,
+        'socket_timeout': 10,
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}}
     }
 
     info = None
