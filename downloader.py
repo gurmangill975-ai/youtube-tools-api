@@ -136,7 +136,7 @@ def extract_video_info(url):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'tv_embedded']}}
+        'extractor_args': {'youtube': {'player_client': ['android']}}
     }
     opts_fallback = {
         'quiet': True,
@@ -145,7 +145,7 @@ def extract_video_info(url):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android']}}
+        'extractor_args': {'youtube': {'player_client': ['android']}}
     }
 
 
@@ -160,7 +160,7 @@ def get_stream_url(url, format_id='best'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'tv_embedded']}}
+        'extractor_args': {'youtube': {'player_client': ['android']}}
     }
     opts_fallback = {
         'quiet': True,
@@ -169,7 +169,48 @@ def get_stream_url(url, format_id='best'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android']}}
+        'extractor_args': {'youtube': {'player_client': ['android']}}
+    }
+
+    info = None
+    try:
+        with yt_dlp.YoutubeDL(opts_primary) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception:
+        with yt_dlp.YoutubeDL(opts_fallback) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+    if info and 'entries' in info:
+        valid_entries = [e for e in info.get('entries', []) if e]
+        if valid_entries:
+            info = valid_entries[0]
+
+    formats = info.get('formats', []) if info else []
+    
+    target = None
+    if format_id == 'best':
+        for f in formats:
+            if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
+                target = f
+                break
+        if not target and formats:
+            target = formats[-1]
+    else:
+        for f in formats:
+            if str(f.get('format_id')) == str(format_id):
+                target = f
+                break
+
+    if not target:
+        raise Exception(f"Format ID '{format_id}' not found for video.")
+
+    return {
+        'title': info.get('title', 'video'),
+        'stream_url': target.get('url'),
+        'headers': target.get('http_headers', {}),
+        'ext': target.get('ext'),
+        'vcodec': target.get('vcodec'),
+        'acodec': target.get('acodec'),
     }
 
 
@@ -185,7 +226,7 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'tv_embedded']}}
+        'extractor_args': {'youtube': {'player_client': ['android']}}
     }
     opts_fallback = {
         'quiet': True,
@@ -194,7 +235,7 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'noplaylist': True,
         'cachedir': False,
         'socket_timeout': 10,
-        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'android']}}
+        'extractor_args': {'youtube': {'player_client': ['android']}}
     }
 
     info = None
