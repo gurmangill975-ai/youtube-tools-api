@@ -129,23 +129,30 @@ def extract_video_info(url):
     Extract metadata and format breakdown for a YouTube video (including Kids & Restricted videos).
     Returns a structured dictionary of information.
     """
-    ydl_opts = {
+    opts_primary = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'ios', 'mweb', 'web']
-            }
-        }
+        'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
+    }
+    opts_fallback = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
+    info = None
+    try:
+        with yt_dlp.YoutubeDL(opts_primary) as ydl:
             info = ydl.extract_info(url, download=False)
-        except Exception as e:
-            logger.error(f"Error extracting info for {url}: {str(e)}")
-            raise Exception(f"Failed to fetch YouTube info: {str(e)}")
+    except Exception as e1:
+        logger.warning(f"Primary info extraction failed for {url}: {e1}. Trying fallback...")
+        try:
+            with yt_dlp.YoutubeDL(opts_fallback) as ydl:
+                info = ydl.extract_info(url, download=False)
+        except Exception as e2:
+            logger.error(f"Fallback extraction also failed for {url}: {e2}")
+            raise Exception(f"Failed to fetch YouTube info: {str(e2)}")
 
     if not info:
         raise Exception("Could not retrieve video information.")
@@ -216,47 +223,53 @@ def get_stream_url(url, format_id='best'):
     """
     Get direct stream URL and HTTP headers for a video format.
     """
-    ydl_opts = {
+    opts_primary = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'ios', 'mweb', 'web']
-            }
-        }
+        'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
+    }
+    opts_fallback = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        formats = info.get('formats', [])
-        
-        target = None
-        if format_id == 'best':
-            # Find best combined format first, otherwise best video format
-            for f in formats:
-                if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
-                    target = f
-                    break
-            if not target and formats:
-                target = formats[-1]
-        else:
-            for f in formats:
-                if str(f.get('format_id')) == str(format_id):
-                    target = f
-                    break
+    info = None
+    try:
+        with yt_dlp.YoutubeDL(opts_primary) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception:
+        with yt_dlp.YoutubeDL(opts_fallback) as ydl:
+            info = ydl.extract_info(url, download=False)
 
-        if not target:
-            raise Exception(f"Format ID '{format_id}' not found for video.")
+    formats = info.get('formats', []) if info else []
+    
+    target = None
+    if format_id == 'best':
+        for f in formats:
+            if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
+                target = f
+                break
+        if not target and formats:
+            target = formats[-1]
+    else:
+        for f in formats:
+            if str(f.get('format_id')) == str(format_id):
+                target = f
+                break
 
-        return {
-            'title': info.get('title', 'video'),
-            'stream_url': target.get('url'),
-            'headers': target.get('http_headers', {}),
-            'ext': target.get('ext'),
-            'vcodec': target.get('vcodec'),
-            'acodec': target.get('acodec'),
-        }
+    if not target:
+        raise Exception(f"Format ID '{format_id}' not found for video.")
+
+    return {
+        'title': info.get('title', 'video'),
+        'stream_url': target.get('url'),
+        'headers': target.get('http_headers', {}),
+        'ext': target.get('ext'),
+        'vcodec': target.get('vcodec'),
+        'acodec': target.get('acodec'),
+    }
 
 
 def get_direct_download_link(url, quality='best', format_type='video'):
@@ -264,19 +277,25 @@ def get_direct_download_link(url, quality='best', format_type='video'):
     Get direct stream link and filename for Vercel instant downloads.
     Bypasses server file creation & ffmpeg timeouts completely (<500ms response).
     """
-    ydl_opts = {
+    opts_primary = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'ios', 'mweb', 'web']
-            }
-        }
+        'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
+    }
+    opts_fallback = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
+    info = None
+    try:
+        with yt_dlp.YoutubeDL(opts_primary) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception:
+        with yt_dlp.YoutubeDL(opts_fallback) as ydl:
+            info = ydl.extract_info(url, download=False)
 
     if not info:
         raise Exception("Failed to retrieve video metadata.")
