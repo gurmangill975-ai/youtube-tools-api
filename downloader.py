@@ -134,6 +134,7 @@ def extract_video_info(url):
         'no_warnings': True,
         'nocheckcertificate': True,
         'ignoreerrors': True,
+        'noplaylist': True,
         'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
     }
     opts_fallback = {
@@ -141,6 +142,7 @@ def extract_video_info(url):
         'no_warnings': True,
         'nocheckcertificate': True,
         'ignoreerrors': True,
+        'noplaylist': True,
     }
 
     info = None
@@ -158,6 +160,14 @@ def extract_video_info(url):
 
     if not info:
         raise Exception("Could not retrieve video information.")
+
+    # Unpack if yt-dlp returned a playlist or mix entry
+    if 'entries' in info:
+        valid_entries = [e for e in info.get('entries', []) if e]
+        if valid_entries:
+            info = valid_entries[0]
+        else:
+            raise Exception("No playable video entry found in playlist/mix.")
 
     formats_list = info.get('formats', []) or []
     combined_formats = []
@@ -239,12 +249,14 @@ def get_stream_url(url, format_id='best'):
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'noplaylist': True,
         'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
     }
     opts_fallback = {
         'quiet': True,
         'no_warnings': True,
-        'nocheckcertificate': True
+        'nocheckcertificate': True,
+        'noplaylist': True,
     }
 
     info = None
@@ -254,6 +266,11 @@ def get_stream_url(url, format_id='best'):
     except Exception:
         with yt_dlp.YoutubeDL(opts_fallback) as ydl:
             info = ydl.extract_info(url, download=False)
+
+    if info and 'entries' in info:
+        valid_entries = [e for e in info.get('entries', []) if e]
+        if valid_entries:
+            info = valid_entries[0]
 
     formats = info.get('formats', []) if info else []
     
@@ -293,12 +310,14 @@ def get_direct_download_link(url, quality='best', format_type='video'):
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'noplaylist': True,
         'extractor_args': {'youtube': {'player_client': ['mweb', 'web', 'android', 'ios']}}
     }
     opts_fallback = {
         'quiet': True,
         'no_warnings': True,
-        'nocheckcertificate': True
+        'nocheckcertificate': True,
+        'noplaylist': True,
     }
 
     info = None
@@ -308,6 +327,14 @@ def get_direct_download_link(url, quality='best', format_type='video'):
     except Exception:
         with yt_dlp.YoutubeDL(opts_fallback) as ydl:
             info = ydl.extract_info(url, download=False)
+
+    if not info:
+        raise Exception("Failed to retrieve video metadata.")
+
+    if 'entries' in info:
+        valid_entries = [e for e in info.get('entries', []) if e]
+        if valid_entries:
+            info = valid_entries[0]
 
     if not info:
         raise Exception("Failed to retrieve video metadata.")
