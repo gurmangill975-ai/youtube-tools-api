@@ -8,5 +8,6 @@ if root_dir not in sys.path:
 
 from app import app
 
-# Vercel entry point
+# Export both app and handler for Vercel WSGI/ASGI serverless adapters
 app = app
+handler = app
